@@ -31,3 +31,11 @@ sqlparse==0.4.2
 tzdata==2022.2
 uritemplate==4.1.1
 urllib3==1.26.11
+
+future~=0.18.2
+pip~=21.2.3
+tornado~=6.1
+click~=8.0.3
+chardet~=3.0.4
+setuptools~=57.4.0
+django-filter~=22.1

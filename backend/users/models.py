@@ -65,3 +65,38 @@ class User(AbstractUser):
     @property
     def is_user(self):
         return self.role == UserRoles.USER
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(
+        User,
+        verbose_name='подписчик',
+        on_delete=models.CASCADE,
+        related_name='follower'
+    )
+    author = models.ForeignKey(
+        User,
+        verbose_name='подписка',
+        on_delete=models.CASCADE,
+        related_name='following',
+        error_messages={
+            'unique': 'Вы уже подписаны на данного автора.',
+        }
+    )
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+        db_table = 'subscription'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('user', 'author',),
+                name='unique_subscription'),
+            models.CheckConstraint(
+                name='do_not_subscribe_again',
+                check=~models.Q(user=models.F('author')),
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.user} оформил подписку на {self.author}'
