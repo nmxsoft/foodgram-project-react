@@ -15,7 +15,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from users.models import Subscription, User
 from recipes.models import (Favorite, Ingredient, AddAmount, Recipe,
                             ShoppingCart, Tag)
-
+from .mixins import (ListViewSet, ListRetrieveViewSet)
 from .pagination import FoodGramPagination
 
 from .serializers import (CustomUserSerializer,
@@ -181,3 +181,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if request.method == 'POST':
             return self.add_to_shopping_cart(request, recipe.id)
         return self.delete_from_shopping_cart(request, recipe.id)
+
+
+class IngredientViewSet(ListRetrieveViewSet):
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
