@@ -1,9 +1,12 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import exceptions, serializers, status, validators
 from djoser.serializers import UserCreateSerializer, UserSerializer
+from drf_extra_fields.fields import Base64ImageField
 
 from users.models import Subscription, User
 from recipes.models import (Favorite, Ingredient, AddAmount, Recipe,
                             ShoppingCart, Tag)
+from .validators import password_verification
 
 
 class CustomUserSerializer(UserSerializer):
@@ -34,12 +37,21 @@ class CustomUserSerializer(UserSerializer):
             )
         ]
 
-    def get_is_subscribed(self, obj: User):
+    def get_is_subscribed(self, obj):
         user = self.context.get('request').user
         return (
             user.is_authenticated
             and obj.following.filter(user=user).exists()
         )
+
+    def validate_user(self, value):
+        user = self.context.get('request').user
+        if not user.id:
+            raise exceptions.NotFound(
+                detail='Страница не найдена.',
+                code=status.HTTP_404_NOT_FOUND
+            )
+        return value
 
 
 class SignUpSerializer(UserCreateSerializer):
@@ -64,11 +76,26 @@ class SignUpSerializer(UserCreateSerializer):
                   'first_name', 'last_name', 'password',)
         extra_kwargs = {'password': {'write_only': True}}
 
-    def validate_username(self, username: str):
-        """Validation of user's username"""
+    def validate_username(self, username):
         if username.lower() == 'me':
             raise serializers.ValidationError('Недопустимое имя')
         return username
+
+    def validate(self, data):
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        password_verification(password)
+        if User.objects.filter(username=username).exists():
+            raise serializers.ValidationError(
+                detail='Нужно попробовать другой.',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError(
+                detail='Использование email повторно.',
+                code=status.HTTP_400_BAD_REQUEST)
+        return data
 
     def create(self, validated_data):
         user = User.objects.create(
@@ -109,7 +136,7 @@ class SubscriptionListSerializer(CustomUserSerializer):
                   'recipes',
                   'recipes_count',)
 
-    def get_recipes(self, obj: User):
+    def get_recipes(self, obj):
         request = self.context.get('request')
         if not request or request.user.is_anonymous:
             return False
@@ -122,7 +149,7 @@ class SubscriptionListSerializer(CustomUserSerializer):
         return PartialRecipeSerializer(
             recipes, many=True, context=context).data
 
-    def get_recipes_count(self, obj: User):
+    def get_recipes_count(self, obj):
         user = self.context.get('request').user
         if user.is_authenticated:
             return Recipe.objects.filter(author=obj).count()
@@ -142,7 +169,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             validators.UniqueTogetherValidator(
                 queryset=Subscription.objects.all(),
                 fields=('user', 'author'),
-                message=('Подписка уже есть')
+                message='Подписка уже есть'
             )
         ]
 
@@ -156,7 +183,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
                                                    author=author_id).exists()
         if subscription:
             raise serializers.ValidationError(
-                detail=(f'Вы уже подписаны на {author_id}.'),
+                detail=f'Вы уже подписаны на {author_id}.',
                 code=status.HTTP_400_BAD_REQUEST
             )
         if author_id == user.id:
@@ -237,11 +264,11 @@ class RecipeListRetrieveSerializer(serializers.ModelSerializer):
                   'text',
                   'cooking_time',)
 
-    def get_ingredients(self, obj: Recipe):
+    def get_ingredients(self, obj):
         ingredients = AddAmount.objects.filter(recipe=obj)
         return AddAmountSerializer(ingredients, many=True).data
 
-    def get_is_favorited(self, obj: Recipe):
+    def get_is_favorited(self, obj):
         if self.context.get('request').method == 'POST':
             return False
         user = self.context.get('request').user
@@ -249,7 +276,7 @@ class RecipeListRetrieveSerializer(serializers.ModelSerializer):
             return user.user_favorite.filter(recipe=obj).exists()
         return False
 
-    def get_is_in_shopping_cart(self, obj: Recipe) -> bool:
+    def get_is_in_shopping_cart(self, obj):
         if self.context.get('request').method == 'POST':
             return False
         user = self.context.get('request').user
@@ -262,6 +289,7 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
     ingredients = AddAmountCUDSerializer(many=True)
     tags = serializers.PrimaryKeyRelatedField(
         queryset=Tag.objects.all(), many=True)
+    image = Base64ImageField()
 
     class Meta:
         model = Recipe
@@ -272,6 +300,74 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
                   'name',
                   'text',
                   'cooking_time',)
+
+    def validate(self, data):
+        user = self.context.get('request').user
+        tags = data.get('tags')
+        image = data.get('image')
+        name = data.get('name')
+        text = data.get('text')
+        cooking_time = data.get('cooking_time')
+        if user.is_anonymous:
+            raise serializers.ValidationError(
+                detail='Необходимо пройти аутентификацию',
+                code=status.HTTP_403_FORBIDDEN
+            )
+        if not tags:
+            raise serializers.ValidationError(
+                detail='Необходимо выбрать теги',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        if not image:
+            raise serializers.ValidationError(
+                detail='Загрузите фото рецепта',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        if not name:
+            raise serializers.ValidationError(
+                detail='Укажите название рецепта',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        if not text:
+            raise serializers.ValidationError(
+                detail='Необходимо описание приготовления блюда',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        if not cooking_time or cooking_time <= 0:
+            raise serializers.ValidationError(
+                detail='Укажите время приготовления',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        return data
+
+    def validate_ingredients(self, data):
+        ingredients = self.initial_data['ingredients']
+        if not ingredients or len(ingredients) == 0:
+            raise serializers.ValidationError(
+                detail=('Укажите название и количество '
+                        'ингредиентов в рецепте.'),
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        ingredients_id = []
+        for item in ingredients:
+            ingredient = get_object_or_404(
+                Ingredient,
+                id=item['id']
+            )
+            if int(item.get('amount')) < 1:
+                raise serializers.ValidationError(
+                    detail=('Укажите необходимое количество '
+                            f'ингредиента {ingredient}.'),
+                    code=status.HTTP_400_BAD_REQUEST
+                )
+            if ingredient in ingredients_id:
+                raise serializers.ValidationError(
+                    detail=(f'Ингредиент {ingredient.id} уже '
+                            'использован в рецепте.'),
+                    code=status.HTTP_400_BAD_REQUEST
+                )
+            ingredients_id.append(ingredient)
+        return data
 
     def create_ingredients(self, recipe, ingredients):
         bulk_list = []
@@ -323,9 +419,20 @@ class FavoriteSerializer(serializers.ModelSerializer):
             validators.UniqueTogetherValidator(
                 queryset=Favorite.objects.all(),
                 fields=('user', 'recipe'),
-                message=('Рецепт уже в избранном')
+                message='Рецепт уже в избранном'
             )
         ]
+
+    def validate(self, data):
+        user = data.get('user_id')
+        recipe_req = data['recipe']
+        if Favorite.objects.filter(user=user,
+                                   recipe=recipe_req).exists():
+            raise serializers.ValidationError(
+                detail=f'{recipe_req} уже есть в вашем списке.',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        return data
 
     def to_representation(self, instance):
         request = self.context.get('request')
@@ -343,9 +450,23 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
             validators.UniqueTogetherValidator(
                 queryset=ShoppingCart.objects.all(),
                 fields=('user', 'recipe'),
-                message=('Рецепт уже есть в списке покупок')
+                message='Рецепт уже есть в списке покупок'
             )
         ]
+
+    def validate(self, data):
+        request = self.context.get('request')
+        if not request or request.user.is_anonymous:
+            return False
+        user = data.get('user_id')
+        recipe_req = data.get('recipe')
+        if ShoppingCart.objects.filter(user=user,
+                                       recipe=recipe_req).exists():
+            raise serializers.ValidationError(
+                detail=f'{recipe_req} уже есть в списке покупок.',
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        return data
 
     def to_representation(self, instance):
         request = self.context.get('request')

@@ -4,12 +4,14 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (CustomUserViewSet, IngredientViewSet,
                     RecipeViewSet,
-                    SubscriptionCreateDeleteAPIView)
+                    SubscriptionCreateDeleteAPIView,
+                    SubscriptionViewSet, TagViewSet)
 
 router = DefaultRouter()
-router.register(r'users', CustomUserViewSet, basename='users_list')
-router.register(r'ingredients', IngredientViewSet, basename='ingredients')
-router.register(r'recipes', RecipeViewSet, basename='recipes')
+router.register('users', CustomUserViewSet, basename='users_list')
+router.register('ingredients', IngredientViewSet, basename='ingredients')
+router.register('tags', TagViewSet, basename='tags')
+router.register('recipes', RecipeViewSet, basename='recipes')
 
 app_name = 'api'
 
@@ -23,6 +25,11 @@ urlpatterns = [
         'users/<int:id>/subscribe/',
         SubscriptionCreateDeleteAPIView.as_view(),
         name='subscribe'),
+    path(
+        'users/subscriptions/',
+        SubscriptionViewSet.as_view({'get': 'list'}),
+        name='subscriptions'
+    ),
     path('', include(router.urls)),
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),

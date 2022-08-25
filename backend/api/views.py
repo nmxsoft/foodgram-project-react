@@ -15,9 +15,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from users.models import Subscription, User
 from recipes.models import (Favorite, Ingredient, AddAmount, Recipe,
                             ShoppingCart, Tag)
+from .filters import (IngredientSearchFilter,
+                      RecipeFilter)
 from .mixins import (ListViewSet, ListRetrieveViewSet)
 from .pagination import FoodGramPagination
-
+from .permissions import (IsAdminOrReadOnly,
+                          IsAuthorOnly,)
 from .serializers import (CustomUserSerializer,
                           AccountSerializer,
                           FavoriteSerializer, IngredientSerializer,
@@ -52,6 +55,17 @@ class CustomUserViewSet(UserViewSet):
             status=status.HTTP_200_OK)
 
 
+class SubscriptionViewSet(ListViewSet):
+    queryset = Subscription.objects.all()
+    serializer_class = SubscriptionSerializer
+    permission_classes = (IsAuthorOnly,)
+    pagination_class = FoodGramPagination
+    http_method_names = ('get', )
+
+    def get_queryset(self):
+        return Subscription.objects.filter(user=self.request.user)
+
+
 class SubscriptionCreateDeleteAPIView(APIView):
     serializer_class = SubscriptionSerializer
     permission_classes = (IsAuthenticated,)
@@ -81,11 +95,30 @@ class SubscriptionCreateDeleteAPIView(APIView):
                         status=status.HTTP_400_BAD_REQUEST)
 
 
+class IngredientViewSet(ListRetrieveViewSet):
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    pagination_class = None
+    filterset_class = IngredientSearchFilter
+    search_fields = ('^name')
+
+
+class TagViewSet(ListRetrieveViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = (IsAdminOrReadOnly,)
+    pagination_class = None
+
+
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthenticatedOrReadOnly,)
     pagination_class = FoodGramPagination
     filter_backends = (DjangoFilterBackend, filters.SearchFilter,)
+    filterset_class = RecipeFilter
+    filterset_fields = ('tags', 'author',
+                        'is_favorited', 'is_in_shopping_cart',)
+    search_fields = ('$name', )
     http_method_names = ('get', 'post', 'patch', 'delete',)
 
     def get_serializer_class(self, *args, **kwargs):
@@ -112,10 +145,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if favorite.exists():
             favorite.delete()
             return Response(
-                'Рецепт удален из Избранного.',
+                'Рецепт удален из избранного.',
                 status=status.HTTP_204_NO_CONTENT)
         return Response(
-            {'error': 'В Избранном такого рецепта нет.'},
+            {'error': 'В избранном такого рецепта нет.'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -134,7 +167,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             detail=False,
             url_path='download_shopping_cart',
             serializer_class=ShoppingCartSerializer,
-            permission_classes=(IsAuthenticated,))
+            permission_classes=(IsAuthorOnly,))
     def download_shopping_cart(self, request):
         ingredients = AddAmount.objects.filter(
             recipe__cart__user=request.user).values(
@@ -166,7 +199,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if cart.exists():
             cart.delete()
             return Response(
-                'Рецепт удален из Списка покупок.',
+                'Рецепт удален из списка покупок.',
                 status=status.HTTP_204_NO_CONTENT)
         return Response({'error': 'В корзине такого рецепта нет.'},
                         status=status.HTTP_400_BAD_REQUEST)
@@ -181,8 +214,3 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if request.method == 'POST':
             return self.add_to_shopping_cart(request, recipe.id)
         return self.delete_from_shopping_cart(request, recipe.id)
-
-
-class IngredientViewSet(ListRetrieveViewSet):
-    queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
