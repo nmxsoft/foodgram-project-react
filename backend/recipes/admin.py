@@ -25,6 +25,7 @@ class TagAdmin(admin.ModelAdmin):
 
 class IngredientInLine(admin.TabularInline):
     model = AddAmount
+    min_num = 1
 
 
 @admin.register(Recipe)
