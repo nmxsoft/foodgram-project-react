@@ -300,7 +300,37 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
                   'text',
                   'cooking_time',)
 
+    def validate_ingredients(self, data):
+        ingredients = self.initial_data['ingredients']
+        if not ingredients or len(ingredients) == 0:
+            raise serializers.ValidationError(
+                detail=('Укажите название и количество '
+                        'ингредиентов в рецепте.'),
+                code=status.HTTP_400_BAD_REQUEST
+            )
+        ingredients_id = []
+        for item in ingredients:
+            ingredient = get_object_or_404(
+                Ingredient,
+                id=item['id']
+            )
+            if int(item.get('amount')) < 1:
+                raise serializers.ValidationError(
+                    detail=('Укажите необходимое количество '
+                            f'ингредиента {ingredient}.'),
+                    code=status.HTTP_400_BAD_REQUEST
+                )
+            if ingredient in ingredients_id:
+                raise serializers.ValidationError(
+                    detail=(f'Ингредиент {ingredient.id} уже '
+                            'использован в рецепте.'),
+                    code=status.HTTP_400_BAD_REQUEST
+                )
+            ingredients_id.append(ingredient)
+        return data
+    
     def validate(self, data):
+        self.validate_ingredients(data)
         user = self.context.get('request').user
         tags = data.get('tags')
         image = data.get('image')
@@ -337,35 +367,6 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
                 detail='Укажите время приготовления',
                 code=status.HTTP_400_BAD_REQUEST
             )
-        return data
-
-    def validate(self, data):
-        ingredients = self.initial_data['ingredients']
-        if not ingredients or len(ingredients) == 0:
-            raise serializers.ValidationError(
-                detail=('Укажите название и количество '
-                        'ингредиентов в рецепте.'),
-                code=status.HTTP_400_BAD_REQUEST
-            )
-        ingredients_id = []
-        for item in ingredients:
-            ingredient = get_object_or_404(
-                Ingredient,
-                id=item['id']
-            )
-            if int(item.get('amount')) < 1:
-                raise serializers.ValidationError(
-                    detail=('Укажите необходимое количество '
-                            f'ингредиента {ingredient}.'),
-                    code=status.HTTP_400_BAD_REQUEST
-                )
-            if ingredient in ingredients_id:
-                raise serializers.ValidationError(
-                    detail=(f'Ингредиент {ingredient.id} уже '
-                            'использован в рецепте.'),
-                    code=status.HTTP_400_BAD_REQUEST
-                )
-            ingredients_id.append(ingredient)
         return data
 
     def create_ingredients(self, recipe, ingredients):
