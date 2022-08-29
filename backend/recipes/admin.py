@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db.models import Count
 
 from .models import (Favorite, Ingredient, AddAmount, Recipe,
                      ShoppingCart, Tag)
@@ -22,12 +23,21 @@ class TagAdmin(admin.ModelAdmin):
     empty_value_display = '---пусто---'
 
 
+class IngredientInLine(admin.TabularInline):
+    model = AddAmount
+
+
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'author', 'text',)
+    inlines = [IngredientInLine]
+    list_display = ('id', 'name', 'author', 'text', 'in_favorites',)
     list_filter = ('author', 'name', 'tags',)
-    search_fields = ('name',)
+    search_fields = ('name', 'author', 'tags',)
     empty_value_display = '---пусто---'
+
+    @staticmethod
+    def in_favorites(obj):
+        return obj.favorites.count()
 
 
 @admin.register(AddAmount)

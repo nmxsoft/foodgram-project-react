@@ -153,11 +153,10 @@ class SubscriptionListSerializer(CustomUserSerializer):
         user = self.context.get('request').user
         if user.is_authenticated:
             return Recipe.objects.filter(author=obj).count()
-        else:
-            raise exceptions.NotAuthenticated(
-                detail='Учетные данные не были предоставлены.',
-                code=status.HTTP_401_UNAUTHORIZED
-            )
+        raise exceptions.NotAuthenticated(
+            detail='Учетные данные не были предоставлены.',
+            code=status.HTTP_401_UNAUTHORIZED
+        )
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
@@ -340,7 +339,7 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
             )
         return data
 
-    def validate_ingredients(self, data):
+    def validate(self, data):
         ingredients = self.initial_data['ingredients']
         if not ingredients or len(ingredients) == 0:
             raise serializers.ValidationError(

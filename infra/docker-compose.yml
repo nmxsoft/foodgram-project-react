@@ -1,6 +1,12 @@
 version: '3.3'
 services:
 
+  back:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    volumes:
+      - ../backend/:/app/
   frontend:
     build:
       context: ../frontend

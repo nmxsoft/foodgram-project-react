@@ -28,6 +28,7 @@ from .serializers import (CustomUserSerializer,
                           RecipeManipulationSerializer,
                           ShoppingCartSerializer, SubscriptionSerializer,
                           TagSerializer)
+from .utils import download_txt_ingredients
 
 
 class CustomUserViewSet(UserViewSet):
@@ -169,19 +170,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer_class=ShoppingCartSerializer,
             permission_classes=(IsAuthorOnly,))
     def download_shopping_cart(self, request):
-        ingredients = AddAmount.objects.filter(
-            recipe__cart__user=request.user).values(
-                'ingredients__name', 'ingredients__measurement_unit'
-        ).annotate(total=Sum('amount'))
-        shopping_cart = '\n'.join([
-            f'{ingredient["ingredients__name"]} - {ingredient["total"]} '
-            f'{ingredient["ingredients__measurement_unit"]}'
-            for ingredient in ingredients
-        ])
-        filename = 'shopping_cart.txt'
-        response = HttpResponse(shopping_cart, content_type='text/plain')
-        response['Content-Disposition'] = f'attachment; filename={filename}'
-        return response
+        return download_txt_ingredients(request)
 
     def add_to_shopping_cart(self, request, recipe):
         data = {'user': request.user.id, 'recipe': recipe}
