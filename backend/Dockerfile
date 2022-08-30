@@ -1,6 +1,13 @@
-FROM python:3.7.13-slim
+FROM python:3.7-slim
+
+RUN apt update && apt -y install libpq-dev build-essential
+
 WORKDIR /app
-COPY requirements.txt .
+
+COPY requirements.txt /app
+
 RUN pip3 install -r requirements.txt --no-cache-dir
-COPY . .
-CMD ["gunicorn", "backend.wsgi:application", "--bind", "0:8000" ]
+
+COPY ./ /app
+
+CMD ["gunicorn", "foodgram.wsgi:application", "--bind", "0:8000" ]

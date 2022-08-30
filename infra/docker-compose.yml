@@ -9,7 +9,7 @@ services:
       - ./.env
 
   backend:
-    image: nmxsoft/foodgram_backend:latest
+    image: nmxsoft/backend:latest
     restart: always
     volumes:
       - static_volume:/app/static_backend/
@@ -23,10 +23,10 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
     volumes:
-      - ./frontend/result_build/:/app/result_build/
+      - ../frontend/result_build/:/app/result_build/
   
   nginx:
     image: nginx:1.19.3
