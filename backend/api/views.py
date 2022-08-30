@@ -1,5 +1,3 @@
-from django.db.models import Sum
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, status, viewsets
 from rest_framework.views import APIView
@@ -13,7 +11,7 @@ from djoser.views import UserViewSet
 from django_filters.rest_framework import DjangoFilterBackend
 
 from users.models import Subscription, User
-from recipes.models import (Favorite, Ingredient, AddAmount, Recipe,
+from recipes.models import (Favorite, Ingredient, Recipe,
                             ShoppingCart, Tag)
 from .filters import (IngredientSearchFilter,
                       RecipeFilter)
