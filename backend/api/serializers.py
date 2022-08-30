@@ -1,11 +1,11 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import exceptions, serializers, status, validators
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from drf_extra_fields.fields import Base64ImageField
-
-from users.models import Subscription, User
-from recipes.models import (Favorite, Ingredient, AddAmount, Recipe,
+from recipes.models import (AddAmount, Favorite, Ingredient, Recipe,
                             ShoppingCart, Tag)
+from rest_framework import exceptions, serializers, status, validators
+from users.models import Subscription, User
+
 from .validators import password_verification
 
 

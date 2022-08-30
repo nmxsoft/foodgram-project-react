@@ -2,10 +2,9 @@ from django.urls import include, path
 from django.views.generic import TemplateView
 from rest_framework.routers import DefaultRouter
 
-from .views import (CustomUserViewSet, IngredientViewSet,
-                    RecipeViewSet,
-                    SubscriptionCreateDeleteAPIView,
-                    SubscriptionViewSet, TagViewSet)
+from .views import (CustomUserViewSet, IngredientViewSet, RecipeViewSet,
+                    SubscriptionCreateDeleteAPIView, SubscriptionViewSet,
+                    TagViewSet)
 
 router = DefaultRouter()
 router.register('users', CustomUserViewSet, basename='users_list')
