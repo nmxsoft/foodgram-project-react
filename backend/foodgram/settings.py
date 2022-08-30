@@ -7,7 +7,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', default='secret')
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['158.160.3.146', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['158.160.3.146', '127.0.0.1', 'localhost', 'backend', '*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -56,7 +56,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'foodgram.wsgi.application'
-
+#
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.sqlite3',

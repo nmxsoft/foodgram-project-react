@@ -22,6 +22,7 @@ services:
       - db
 
   frontend:
+    image: nmxsoft/frontend:latest
     build:
       context: ../frontend
       dockerfile: Dockerfile
@@ -40,6 +41,7 @@ services:
       - media_volume:/app/media_backend/
     depends_on:
       - backend
+      - frontend
     
 volumes:
   postgres_volume:
