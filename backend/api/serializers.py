@@ -328,7 +328,7 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
                 )
             ingredients_id.append(ingredient)
         return data
-    
+
     def validate(self, data):
         self.validate_ingredients(data)
         user = self.context.get('request').user
