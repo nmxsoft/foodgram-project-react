@@ -1,4 +1,4 @@
-![WORKFLOW_STATUS](https://github.com/nmxsoft/foodgram-project-react/actions/workflows/foodgram_workflow.yml/badge.svg)
+![WORKFLOW_STATUS](https://github.com/nmxsoft/foodgram-project-react/actions/workflows/main.yml/badge.svg)
 
 # ***Foodgram-project-react***
 
