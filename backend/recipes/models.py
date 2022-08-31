@@ -1,11 +1,9 @@
-from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.urls import reverse
 
 from .validators import validate_not_empty
-
-User = get_user_model()
+from users.models import User
 
 
 class Ingredient(models.Model):
