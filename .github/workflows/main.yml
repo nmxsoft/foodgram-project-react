@@ -40,51 +40,52 @@ jobs:
     needs: tests
     steps:
       - name: Check out the repo
-        # Проверка доступности репозитория Docker Hub для workflow
-        uses: actions/checkout@v2 
+        uses: actions/checkout@v2
       - name: Set up Docker Buildx
-        # Вызов сборщика контейнеров docker
-        uses: docker/setup-buildx-action@v1 
-      - name: Login to Docker 
-        # Запуск скрипта авторизации на Docker Hub
-        uses: docker/login-action@v1 
+        uses: docker/setup-buildx-action@v1
+      - name: Login to Docker
+        uses: docker/login-action@v1
         with:
-          username: ${{ secrets.DOCKER_USERNAME }} 
+          username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Push to Docker Hub
-        # Пуш образа в Docker Hub 
-        uses: docker/build-push-action@v2 
+      - name: Push backend
+        uses: docker/build-push-action@v2
         with:
-          context: ./backend
+          context: ./backend/
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/backend:latest
+          tags: nmxsoft/backend:latest
+          file: ./backend/Dockerfile
+      - name: Push frontend
+        uses: docker/build-push-action@v2
+        with:
+          context: frontend/
+          push: true
+          tags: nmxsoft/frontend:latest
   deploy:
-    runs-on: ubuntu-latest
-    needs: build_and_push_to_docker_hub
-    if: 
-      contains('
-      refs/heads/master
-      refs/heads/main
-      ', github.ref)
-    steps:
-    - name: executing remote ssh commands to deploy
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USER }}
-        key: ${{ secrets.SSH_KEY }}
-        passphrase: ${{ secrets.PASSPHRASE }}
-        script: |
-          sudo docker-compose stop
-          sudo docker-compose rm backend
-          sudo docker pull ${{ secrets.DOCKER_USERNAME }}/backend:latest
-          touch .env
-          echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
-          echo DB_NAME=${{ secrets.DB_NAME }} >> .env
-          echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
-          echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
-          echo DB_HOST=${{ secrets.DB_HOST }} >> .env
-          echo DB_PORT=${{ secrets.DB_PORT }} >> .env
-          sudo docker-compose up -d
-          sudo docker-compose exec -T web python manage.py migrate
-          sudo docker-compose exec -T web python manage.py collectstatic --no-input
+      runs-on: ubuntu-latest
+      needs: build_and_push_to_docker_hub
+      if: contains(github.ref, 'refs/heads/master') || contains(github.ref, 'refs/heads/main')
+      steps:
+      - name: executing remote ssh commands to deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE }}
+          script: |
+            sudo docker pull nmxsoft/backend:latest
+            sudo docker pull nmxsoft/frontend:latest
+            sudo docker-compose stop
+            sudo docker-compose rm backend
+            sudo rm .env
+            touch .env
+            echo SECRET_KEY=${{ secrets.SECRET_KEY }} >> .env
+            echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
+            echo DB_NAME=${{ secrets.DB_NAME }} >> .env
+            echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env
+            echo POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} >> .env
+            echo DB_HOST=${{ secrets.DB_HOST }} >> .env
+            echo DB_PORT=${{ secrets.DB_PORT }} >> .env
+            sudo docker-compose up -d
+
