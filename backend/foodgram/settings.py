@@ -5,7 +5,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', default='secret')
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['158.160.3.146', '127.0.0.1', 'localhost', 'backend', '*']
 
@@ -147,8 +147,8 @@ DJOSER = {
     'SET_PASSWORD_RETYPE': False,
 }
 
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATIC_URL = '/backend_static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'backend_static')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
