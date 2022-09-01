@@ -301,9 +301,7 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
         ingredients = self.initial_data['ingredients']
         if not ingredients or len(ingredients) == 0:
             raise serializers.ValidationError(
-                detail=('Укажите название и количество '
-                        'ингредиентов в рецепте.'),
-                code=status.HTTP_400_BAD_REQUEST
+                {'ingredients': 'Укажите название и количество ингредиентов'}
             )
         ingredients_id = []
         for item in ingredients:
@@ -313,14 +311,13 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
             )
             if int(item.get('amount')) < 1:
                 raise serializers.ValidationError(
-                    detail=('Укажите необходимое количество '
-                            f'ингредиента {ingredient}.'),
+                    detail=({'amount': 'Укажите необходимое количество '
+                            f'ингредиента {ingredient}.'}),
                     code=status.HTTP_400_BAD_REQUEST
                 )
             if ingredient in ingredients_id:
                 raise serializers.ValidationError(
-                    detail=(f'Ингредиент {ingredient.id} уже '
-                            'использован в рецепте.'),
+                    detail=({'ingredients': 'Ингредиент уже использован.'}),
                     code=status.HTTP_400_BAD_REQUEST
                 )
             ingredients_id.append(ingredient)
@@ -388,15 +385,14 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
             'cooking_time',
             instance.cooking_time
         )
-        instance.image = validated_data.get('image', instance.image)
         instance.tags.clear()
         tags = validated_data.get('tags')
         instance.tags.set(tags)
         AddAmount.objects.filter(recipe=recipe).all().delete()
         ingredients = validated_data.get('ingredients')
         self.create_ingredients(recipe, ingredients)
-        instance.save()
-        return instance
+        # instance.save()
+        return super().update(instance, validated_data)
 
     def to_representation(self, instance):
         return RecipeListRetrieveSerializer(
