@@ -311,52 +311,13 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
             )
             if int(item.get('amount')) < 1:
                 raise serializers.ValidationError(
-                    detail=({'amount': 'Укажите необходимое количество '
-                            f'ингредиента {ingredient}.'}),
-                    code=status.HTTP_400_BAD_REQUEST
+                    ({'amount': 'Укажите необходимое количество ингредиента}'})
                 )
             if ingredient in ingredients_id:
                 raise serializers.ValidationError(
-                    detail=({'ingredients': 'Ингредиент уже использован.'}),
-                    code=status.HTTP_400_BAD_REQUEST
+                    ({'ingredients': 'Ингредиент уже использован.'})
                 )
             ingredients_id.append(ingredient)
-        user = self.context.get('request').user
-        tags = data.get('tags')
-        image = data.get('image')
-        name = data.get('name')
-        text = data.get('text')
-        cooking_time = data.get('cooking_time')
-        if user.is_anonymous:
-            raise serializers.ValidationError(
-                detail='Необходимо пройти аутентификацию',
-                code=status.HTTP_403_FORBIDDEN
-            )
-        if not tags:
-            raise serializers.ValidationError(
-                detail='Необходимо выбрать теги',
-                code=status.HTTP_400_BAD_REQUEST
-            )
-        if not image:
-            raise serializers.ValidationError(
-                detail='Загрузите фото рецепта',
-                code=status.HTTP_400_BAD_REQUEST
-            )
-        if not name:
-            raise serializers.ValidationError(
-                detail='Укажите название рецепта',
-                code=status.HTTP_400_BAD_REQUEST
-            )
-        if not text:
-            raise serializers.ValidationError(
-                detail='Необходимо описание приготовления блюда',
-                code=status.HTTP_400_BAD_REQUEST
-            )
-        if not cooking_time or cooking_time <= 0:
-            raise serializers.ValidationError(
-                detail='Укажите время приготовления',
-                code=status.HTTP_400_BAD_REQUEST
-            )
         return data
 
     def create_ingredients(self, recipe, ingredients):
@@ -378,9 +339,9 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        recipe = instance
         instance.name = validated_data.get('name', instance.name)
         instance.text = validated_data.get('text', instance.text)
+        instance.image = validated_data.get('image', instance.image)
         instance.cooking_time = validated_data.get(
             'cooking_time',
             instance.cooking_time
@@ -388,9 +349,9 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
         instance.tags.clear()
         tags = validated_data.get('tags')
         instance.tags.set(tags)
-        AddAmount.objects.filter(recipe=recipe).all().delete()
+        AddAmount.objects.filter(recipe=instance).all().delete()
         ingredients = validated_data.get('ingredients')
-        self.create_ingredients(recipe, ingredients)
+        self.create_ingredients(instance, ingredients)
         # instance.save()
         return super().update(instance, validated_data)
 
