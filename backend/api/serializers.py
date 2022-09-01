@@ -297,7 +297,7 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
                   'text',
                   'cooking_time',)
 
-    def validate_ingredients(self, data):
+    def validate(self, data):
         ingredients = self.initial_data['ingredients']
         if not ingredients or len(ingredients) == 0:
             raise serializers.ValidationError(
@@ -324,10 +324,6 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
                     code=status.HTTP_400_BAD_REQUEST
                 )
             ingredients_id.append(ingredient)
-        return data
-
-    def validate(self, data):
-        self.validate_ingredients(data)
         user = self.context.get('request').user
         tags = data.get('tags')
         image = data.get('image')
@@ -392,6 +388,7 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
             'cooking_time',
             instance.cooking_time
         )
+        instance.image = validated_data.get('image', instance.image)
         instance.tags.clear()
         tags = validated_data.get('tags')
         instance.tags.set(tags)
