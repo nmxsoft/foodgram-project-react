@@ -340,18 +340,21 @@ class RecipeManipulationSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         recipe = instance
-        instance.name = validated_data.pop('name')
-        instance.text = validated_data.pop('text')
-        instance.image = validated_data.pop('image')
-        instance.cooking_time = validated_data.pop('cooking_time')
+        instance.name = validated_data.get('name', instance.name)
+        instance.text = validated_data.get('text', instance.text)
+        instance.cooking_time = validated_data.get(
+            'cooking_time',
+            instance.cooking_time
+        )
         instance.tags.clear()
-        tags = validated_data.pop('tags')
+        tags = validated_data.get('tags')
         instance.tags.set(tags)
         AddAmount.objects.filter(recipe=recipe).all().delete()
         ingredients = validated_data.get('ingredients')
         self.create_ingredients(recipe, ingredients)
-        instance = super().update(instance, validated_data)
+        instance.save()
         return instance
+
 
     def to_representation(self, instance):
         return RecipeListRetrieveSerializer(
